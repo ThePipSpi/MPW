@@ -385,6 +385,52 @@ function MPW.RebuildAutoMessageDropdown()
     if idx < 1 or idx > #newItems then idx = 1; MPW_Config.autoMessageIndex = 1 end
     UIDropDownMenu_SetSelectedID(ddAuto, idx)
     UIDropDownMenu_SetText(ddAuto, newItems[idx])
+    
+    -- Also rebuild row message dropdowns if send window is open
+    if MPW.UI.RebuildRowMessageDropdowns then
+        MPW.UI.RebuildRowMessageDropdowns()
+    end
+end
+
+-- Rebuild row message dropdowns when auto messages change
+function MPW.UI.RebuildRowMessageDropdowns()
+    if not rows then return end
+    
+    local autoMessages = MPW.GetAutoMessagesWithCustom and MPW.GetAutoMessagesWithCustom() or MPW.AUTO_MESSAGE_PRESETS
+    
+    for i = 1, MPW.MAX_ROWS do
+        local r = rows[i]
+        if r and r.msgDD then
+            -- Preserve current selection
+            local currentIdx = UIDropDownMenu_GetSelectedID(r.msgDD) or 1
+            if currentIdx < 1 or currentIdx > #autoMessages then currentIdx = 1 end
+            
+            -- Rebuild the dropdown
+            UIDropDownMenu_Initialize(r.msgDD, function(self, level)
+                local selected = UIDropDownMenu_GetSelectedID(r.msgDD) or currentIdx
+                for idx, txt in ipairs(autoMessages) do
+                    local info = UIDropDownMenu_CreateInfo()
+                    info.text = txt
+                    info.checked = (idx == selected)
+                    info.func = function()
+                        UIDropDownMenu_SetSelectedID(r.msgDD, idx)
+                        UIDropDownMenu_SetText(r.msgDD, txt)
+                        -- Store the selected index for this row
+                        if r.playerName then
+                            MPW.UI.rowMessageOverrides = MPW.UI.rowMessageOverrides or {}
+                            MPW.UI.rowMessageOverrides[r.playerName] = idx
+                        end
+                        CloseDropDownMenus()
+                        if MPW.UI.UpdateRowPreview then MPW.UI.UpdateRowPreview(r) end
+                    end
+                    UIDropDownMenu_AddButton(info, level)
+                end
+            end)
+            
+            UIDropDownMenu_SetSelectedID(r.msgDD, currentIdx)
+            UIDropDownMenu_SetText(r.msgDD, autoMessages[currentIdx])
+        end
+    end
 end
 
 configWin:SetScript("OnShow", function()
