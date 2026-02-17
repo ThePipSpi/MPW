@@ -161,6 +161,8 @@ function MPW.ProcessWhispers(isTest, opts)
         local success, err = pcall(SendChatMessage, item.text, "WHISPER", nil, item.target)
         if not success then
             MPW.Print("Failed to send whisper to " .. MPW.CleanName(item.target) .. ": " .. tostring(err))
+        else
+            if MPW.IncrementSentCount then MPW.IncrementSentCount() end
         end
 
         if MPW.AntiSpam then

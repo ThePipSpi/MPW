@@ -1,5 +1,7 @@
 -- MinimapButton.lua
 -- Minimap icon with preset logo (WoW texture) + quick controls
+-- Parented to UIParent so it sits outside the Minimap frame,
+-- positioned around the edge using angle + radius math.
 -- Left click: /mpw show
 -- Right click: settings
 -- Shift + Left click: toggle SAFE/LIVE
@@ -52,7 +54,8 @@ local function CreateButton()
         return
     end
 
-    local btn = CreateFrame("Button", BTN_NAME, Minimap)
+    -- Parent to UIParent so the button sits outside the Minimap frame
+    local btn = CreateFrame("Button", BTN_NAME, UIParent)
     btn:SetClampedToScreen(true)
     btn:SetSize(32, 32)
     btn:SetFrameStrata("MEDIUM")
@@ -62,25 +65,33 @@ local function CreateButton()
     btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     btn:RegisterForDrag("LeftButton")
 
-    -- Circular border (nice and centered)
-    btn.border = btn:CreateTexture(nil, "BACKGROUND")
+    -- Circular border (properly sized and centered around button)
+    btn.border = btn:CreateTexture(nil, "OVERLAY")
     btn.border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-    btn.border:SetAllPoints()
+    btn.border:SetSize(54, 54)
+    btn.border:SetPoint("TOPLEFT", btn, "TOPLEFT", -2, 2)
 
-    -- Icon (bigger) + circular mask so it stays inside the circle
+    -- Icon centered in the button + circular mask
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
     btn.icon:SetTexture(ICON_TEX)
     btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    btn.icon:SetPoint("CENTER", 0, 0)
-    btn.icon:SetSize(20, 20)
+    btn.icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn.icon:SetSize(24, 24)
 
     -- Mask the icon to a circle (built-in texture)
     btn.mask = btn:CreateMaskTexture()
     btn.mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     btn.mask:SetPoint("CENTER", btn, "CENTER", 0, 0)
-    btn.mask:SetSize(22, 22)
+    btn.mask:SetSize(24, 24)
 
     btn.icon:AddMaskTexture(btn.mask)
+
+    -- Background fill behind icon so the circle looks solid
+    btn.bg = btn:CreateTexture(nil, "BACKGROUND")
+    btn.bg:SetColorTexture(0, 0, 0, 0.6)
+    btn.bg:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn.bg:SetSize(24, 24)
+    btn.bg:AddMaskTexture(btn.mask)
 
 
     btn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
@@ -88,6 +99,14 @@ local function CreateButton()
     btn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Mythic Plus Whisperer")
+        local mode = (MPW.IsArmed and MPW.IsArmed()) and "|cffff2020LIVE|r" or "|cff00ffffSAFE|r"
+        GameTooltip:AddLine("Mode: " .. mode, 1, 1, 1)
+        local stats = MPW.GetSessionStats and MPW.GetSessionStats() or nil
+        if stats then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("Session: " .. stats.sent .. " whisper(s) sent", 0.7, 0.9, 0.7)
+        end
+        GameTooltip:AddLine(" ")
         GameTooltip:AddLine("Left click: open window", 0.9, 0.9, 0.9)
         GameTooltip:AddLine("Right click: settings", 0.9, 0.9, 0.9)
         GameTooltip:AddLine("Shift+Left: toggle SAFE/LIVE", 0.9, 0.9, 0.9)
