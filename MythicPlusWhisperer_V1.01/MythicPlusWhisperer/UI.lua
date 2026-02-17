@@ -402,11 +402,12 @@ local function CreatePlayerRow(i)
     msgDD.rowIndex = i
     
     -- Initialize with combined message list (presets + custom)
-    local messages = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
+    -- Fetch messages dynamically to get the latest list including custom messages
     local defaultIdx = 1
-    if defaultIdx < 1 or defaultIdx > #messages then defaultIdx = 1 end
     
     UIDropDownMenu_Initialize(msgDD, function(self, level)
+        -- Fetch messages dynamically each time the dropdown opens to include any newly added custom messages
+        local messages = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
         local selected = UIDropDownMenu_GetSelectedID(msgDD) or defaultIdx
         for idx, txt in ipairs(messages) do
             local info = UIDropDownMenu_CreateInfo()
@@ -427,6 +428,9 @@ local function CreatePlayerRow(i)
         end
     end)
     
+    -- Set initial text
+    local messages = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
+    if defaultIdx < 1 or defaultIdx > #messages then defaultIdx = 1 end
     UIDropDownMenu_SetSelectedID(msgDD, defaultIdx)
     UIDropDownMenu_SetText(msgDD, messages[defaultIdx])
 
