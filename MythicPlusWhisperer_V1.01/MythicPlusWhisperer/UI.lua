@@ -705,7 +705,7 @@ local function PopulateFromSnapshot()
         
         -- Reset message dropdown to default for this player
         if r.msgDD then
-            local autoMessages = MPW.GetAutoMessagesWithCustom and MPW.GetAutoMessagesWithCustom() or MPW.AUTO_MESSAGE_PRESETS
+            local autoMessages = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
             local defaultIdx = tonumber(MPW_Config and MPW_Config.autoMessageIndex) or 1
             if defaultIdx < 1 or defaultIdx > #autoMessages then defaultIdx = 1 end
             
