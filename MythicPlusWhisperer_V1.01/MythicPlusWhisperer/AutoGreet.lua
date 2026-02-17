@@ -49,7 +49,10 @@ local function DoGreet()
     if not ShouldGreetNow() then return end
     lastGreetAt = (MPW.Now and MPW.Now()) or (GetTime and GetTime()) or time()
 
-    SendChatMessage(PickGreeting(), ChooseChannel())
+    local success, err = pcall(SendChatMessage, PickGreeting(), ChooseChannel())
+    if not success then
+        -- Silently fail - greeting is optional
+    end
 end
 
 local function ScheduleOneGreet()

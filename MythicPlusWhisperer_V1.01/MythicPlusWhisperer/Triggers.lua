@@ -158,7 +158,10 @@ triggerFrame:SetScript("OnEvent", function(self, event)
                     if type(math.random) == "function" then
                         msg = thanks[math.random(1, #thanks)]
                     end
-                    SendChatMessage(msg, ch)
+                    local success, err = pcall(SendChatMessage, msg, ch)
+                    if not success then
+                        -- Silently fail - auto thanks is optional
+                    end
                 end
             end)
         end

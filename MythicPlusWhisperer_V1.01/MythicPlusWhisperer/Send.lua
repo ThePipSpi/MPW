@@ -157,7 +157,11 @@ function MPW.ProcessWhispers(isTest, opts)
             end
         end
 
-        SendChatMessage(item.text, "WHISPER", nil, item.target)
+        -- Send the whisper with error handling
+        local success, err = pcall(SendChatMessage, item.text, "WHISPER", nil, item.target)
+        if not success then
+            MPW.Print("Failed to send whisper to " .. MPW.CleanName(item.target) .. ": " .. tostring(err))
+        end
 
         if MPW.AntiSpam then
             MPW.AntiSpam.MarkWhisper(item.target)

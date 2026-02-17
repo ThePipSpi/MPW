@@ -2,7 +2,7 @@
 ## Title: Mythic Plus Whisperer
 ## Notes: Accessibility-friendly post-run whispers with role/spec icons and live roster updates.
 ## Author: TuoNome
-## Version: 2.0.3
+## Version: 2.0.4
 
 ## SavedVariables: MPW_Config
 ## SavedVariablesPerCharacter: MPW_CharConfig
@@ -12,6 +12,7 @@ Presets.lua
 Snapshot.lua
 Send.lua
 UI.lua
+Accessibility.lua
 AutoGreet.lua
 MinimapButton.lua
 AntiSpam.lua

@@ -28,9 +28,14 @@ function MPW.CleanName(fullName)
 end
 
 function MPW.GetMyBattleTag()
-    local ok, _, btag = pcall(function() return BNGetInfo() end)
-    if ok then
-        btag = tostring(btag or "")
+    local success, _, btag = pcall(function() 
+        if BNGetInfo then
+            return BNGetInfo() 
+        end
+        return nil, nil
+    end)
+    if success and btag then
+        btag = tostring(btag)
         if btag:find("#") then return btag end
     end
     return ""
