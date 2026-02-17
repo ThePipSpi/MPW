@@ -80,19 +80,25 @@ function MPW.RefreshRunContext()
     MPW.RunContext.level, MPW.RunContext.timeStr = "", ""
     if MPW.CurrentRunType ~= "MPLUS" then return end
 
+    -- Safely get keystone level
     if C_ChallengeMode and C_ChallengeMode.GetActiveKeystoneInfo then
-        local a, b = C_ChallengeMode.GetActiveKeystoneInfo()
-        local level
-        if     type(b) == "number" then level = b
-        elseif type(a) == "table"  then level = a.level or a.keystoneLevel or a[2]
-        elseif type(b) == "table"  then level = b.level or b.keystoneLevel or b[2]
+        local success, a, b = pcall(C_ChallengeMode.GetActiveKeystoneInfo)
+        if success then
+            local level
+            if     type(b) == "number" then level = b
+            elseif type(a) == "table"  then level = a.level or a.keystoneLevel or a[2]
+            elseif type(b) == "table"  then level = b.level or b.keystoneLevel or b[2]
+            end
+            if type(level) == "number" then MPW.RunContext.level = tostring(level) end
         end
-        if type(level) == "number" then MPW.RunContext.level = tostring(level) end
     end
 
+    -- Safely get completion time
     if C_ChallengeMode and C_ChallengeMode.GetCompletionInfo then
-        local _, _, t = C_ChallengeMode.GetCompletionInfo()
-        MPW.RunContext.timeStr = FormatTime(t)
+        local success, _, _, t = pcall(C_ChallengeMode.GetCompletionInfo)
+        if success and t then
+            MPW.RunContext.timeStr = FormatTime(t)
+        end
     end
 end
 

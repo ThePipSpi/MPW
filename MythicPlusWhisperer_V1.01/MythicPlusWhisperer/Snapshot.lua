@@ -181,7 +181,7 @@ end
 local function AddMember(tbl, existing, unit)
     if not UnitExists(unit) then return end
     local name, realm = UnitName(unit)
-    if not name then return end
+    if not name or name == "" then return end
 
     local full = name
     if realm and realm ~= "" then full = name .. "-" .. realm end
@@ -201,8 +201,11 @@ local function AddMember(tbl, existing, unit)
     local specID = 0
     if guid and MPW.SpecCache and MPW.SpecCache[guid] then
         specID = MPW.SpecCache[guid]
-    elseif GetInspectSpecialization then
-        specID = GetInspectSpecialization(unit) or 0
+    elseif GetInspectSpecialization and UnitExists(unit) then
+        local success, spec = pcall(GetInspectSpecialization, unit)
+        if success and spec then
+            specID = spec
+        end
     end
 
     if (role == "NONE" or role == "") and specID > 0 then
@@ -211,8 +214,8 @@ local function AddMember(tbl, existing, unit)
 
     table.insert(tbl, {
         fullName  = full,
-        classFile = classFile,
-        role      = role,
+        classFile = classFile or "PRIEST",
+        role      = role or "NONE",
         guid      = guid,
         specID    = specID > 0 and specID or nil,
     })

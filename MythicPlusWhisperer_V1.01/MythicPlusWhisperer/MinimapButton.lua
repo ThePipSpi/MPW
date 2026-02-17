@@ -28,7 +28,9 @@ local function UpdateIconVisual(btn)
     end
 end
 
-local MINIMAP_RADIUS = 90  -- distance from minimap center (outside the minimap border)
+-- Distance from minimap center to place the button around the edge
+-- Minimap radius is about 70-75 pixels, so 80 places it just outside
+local MINIMAP_RADIUS = 80
 
 local function SetAngle(btn, angle)
     local cfg = GetCharCfg()
@@ -38,7 +40,7 @@ local function SetAngle(btn, angle)
     local x = math.cos(rad) * MINIMAP_RADIUS
     local y = math.sin(rad) * MINIMAP_RADIUS
 
-    -- Anchored to UIParent but positioned relative to Minimap
+    -- Position relative to Minimap center
     btn:ClearAllPoints()
     btn:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
@@ -50,34 +52,35 @@ local function CreateButton()
         return
     end
 
-    local btn = CreateFrame("Button", BTN_NAME, UIParent)
+    local btn = CreateFrame("Button", BTN_NAME, Minimap)
     btn:SetClampedToScreen(true)
     btn:SetSize(32, 32)
     btn:SetFrameStrata("MEDIUM")
+    btn:SetFrameLevel(8)
     btn:SetMovable(true)
     btn:EnableMouse(true)
     btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     btn:RegisterForDrag("LeftButton")
 
     -- Circular border (nice and centered)
-btn.border = btn:CreateTexture(nil, "BACKGROUND")
-btn.border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-btn.border:SetAllPoints()
+    btn.border = btn:CreateTexture(nil, "BACKGROUND")
+    btn.border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+    btn.border:SetAllPoints()
 
--- Icon (bigger) + circular mask so it stays inside the circle
-btn.icon = btn:CreateTexture(nil, "ARTWORK")
-btn.icon:SetTexture(ICON_TEX)
-btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-btn.icon:SetPoint("CENTER", 0, 0)
-btn.icon:SetSize(20, 20)
+    -- Icon (bigger) + circular mask so it stays inside the circle
+    btn.icon = btn:CreateTexture(nil, "ARTWORK")
+    btn.icon:SetTexture(ICON_TEX)
+    btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    btn.icon:SetPoint("CENTER", 0, 0)
+    btn.icon:SetSize(20, 20)
 
--- Mask the icon to a circle (built-in texture)
-btn.mask = btn:CreateMaskTexture()
-btn.mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-btn.mask:SetPoint("CENTER", btn, "CENTER", 0, 0)
-btn.mask:SetSize(22, 22)
+    -- Mask the icon to a circle (built-in texture)
+    btn.mask = btn:CreateMaskTexture()
+    btn.mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    btn.mask:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn.mask:SetSize(22, 22)
 
-btn.icon:AddMaskTexture(btn.mask)
+    btn.icon:AddMaskTexture(btn.mask)
 
 
     btn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
@@ -100,10 +103,10 @@ btn.icon:AddMaskTexture(btn.mask)
             if MPW.ToggleArmed then
                 MPW.ToggleArmed()
             elseif MPW_CharConfig then
-                MPW_CharConfig.isArmed = not not (not MPW_CharConfig.isArmed)
+                MPW_CharConfig.isArmed = not MPW_CharConfig.isArmed
             end
             UpdateIconVisual(self)
-            if MPW.Print then
+            if MPW.Print and MPW.IsArmed then
                 MPW.Print("Mode: " .. (MPW.IsArmed() and "|cffff2020LIVE|r" or "|cff00ffffSAFE|r"))
             end
             return
