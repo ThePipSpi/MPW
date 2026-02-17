@@ -467,10 +467,6 @@ Overview of all addon files and their purposes:
 
 ## Troubleshooting
 
----
-
-## Troubleshooting
-
 ### Addon Not Loading
 
 **Symptoms**: No minimap button, `/mpw` command doesn't work
@@ -519,8 +515,8 @@ Overview of all addon files and their purposes:
    - Missing commas: `{"item1" "item2"}` → `{"item1", "item2"}`
    - Unclosed strings: `"message` → `"message"`
    - Unclosed brackets: `{item1, item2` → `{item1, item2}`
-3. Use a Lua-aware text editor (VS Code, Sublime Text, Notepad++)
-4. Validate Lua syntax online: https://www.lua.org/cgi-bin/demo
+3. Use a Lua-aware text editor with syntax checking (VS Code, Sublime Text, Notepad++)
+4. Validate Lua syntax with your editor's built-in linter or online at https://www.tutorialspoint.com/execute_lua_online.php
 
 ### Minimap Button Missing
 
