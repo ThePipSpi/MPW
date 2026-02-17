@@ -83,9 +83,24 @@ function MPW.ProcessWhispers(isTest, opts)
                         includeSecond = false
                     end
 
+                    -- Get the selected message index for this row
+                    local autoMsgIdx = nil
+                    if r.msgDD then
+                        autoMsgIdx = UIDropDownMenu_GetSelectedID(r.msgDD)
+                    end
+                    -- Fallback to override if set
+                    if not autoMsgIdx and MPW.UI.rowMessageOverrides and MPW.UI.rowMessageOverrides[r.playerName] then
+                        autoMsgIdx = MPW.UI.rowMessageOverrides[r.playerName]
+                    end
+                    -- Final fallback to default config
+                    if not autoMsgIdx then
+                        autoMsgIdx = tonumber(MPW_Config and MPW_Config.autoMessageIndex) or 1
+                    end
+
                     local msg1, msg2 = MPW.BuildMessagesForTarget(r.playerName, includeName, includeSecond, {
                         role = r.role,
                         specID = r.specID,
+                        autoMessageIndex = autoMsgIdx,
                     })
                     local clean = MPW.CleanName(r.playerName)
 

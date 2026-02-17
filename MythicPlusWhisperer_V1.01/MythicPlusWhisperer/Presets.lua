@@ -30,8 +30,23 @@ MPW.MSG2_PRESETS = {
     "if you ever need a +1: {btag}",
 }
 
+-- Auto Messages = automatic whisper messages that can be sent to all players
+-- These are selected in setup and can be overridden per-player in the send window
+MPW.AUTO_MESSAGE_PRESETS = {
+    "thanks for the run {name}!",
+    "gg {name}, {praise}",
+    "great run {name}!",
+    "ty {name}, was fun!",
+    "{praise} {name}!",
+    "thanks {name}, hope to run again!",
+    "gg {name} :)",
+    "appreciate the run {name}!",
+    "Random",
+}
+
 -- Custom lines are appended at runtime but excluded from Random selection
 -- They are stored in MPW_Config.customLines = { [1] = "...", ... }
+-- Auto custom messages are stored in MPW_Config.autoCustomMessages = { [1] = "...", ... }
 
 -- Build combined msg1 list (presets + non-empty custom lines)
 -- Custom entries are tagged so the Random picker can skip them.
@@ -46,6 +61,23 @@ function MPW.GetMsg1WithCustom()
     if MPW_Config and MPW_Config.customLines then
         for i = 1, MPW.MAX_CUSTOM_LINES do
             local line = MPW_Config.customLines[i]
+            if line and strtrim(line) ~= "" then
+                table.insert(list, CUSTOM_TAG .. line)
+            end
+        end
+    end
+    return list
+end
+
+-- Build combined auto message list (presets + non-empty custom auto messages)
+function MPW.GetAutoMessagesWithCustom()
+    local list = {}
+    for _, v in ipairs(MPW.AUTO_MESSAGE_PRESETS) do
+        table.insert(list, v)
+    end
+    if MPW_Config and MPW_Config.autoCustomMessages then
+        for i = 1, MPW.MAX_AUTO_CUSTOM_MESSAGES do
+            local line = MPW_Config.autoCustomMessages[i]
             if line and strtrim(line) ~= "" then
                 table.insert(list, CUSTOM_TAG .. line)
             end
@@ -203,6 +235,7 @@ end
 -- meta:
 --   meta.role   = "TANK"|"HEALER"|"DAMAGER"|"NONE"
 --   meta.specID = number
+--   meta.autoMessageIndex = number (optional override for automatic message)
 -- =========================================
 function MPW.BuildMessagesForTarget(targetFullName, includeName, includeSecond, meta)
     meta = meta or {}
@@ -219,9 +252,22 @@ function MPW.BuildMessagesForTarget(targetFullName, includeName, includeSecond, 
     local praise = PraiseForRole(role)
     local specName = SpecNameFromID(tonumber(meta.specID) or 0)
 
-    -- Use combined list (presets + custom lines) for msg1
-    local msg1List = MPW.GetMsg1WithCustom()
-    local tpl1 = GetSafeTemplate(msg1List, MPW_Config and MPW_Config.msg1Index, 1)
+    -- Determine which message index to use for msg1
+    -- Priority: meta.autoMessageIndex > msg1Index (for backward compatibility)
+    local msg1List
+    local msg1Idx
+    
+    if meta.autoMessageIndex then
+        -- Use automatic message
+        msg1List = MPW.GetAutoMessagesWithCustom()
+        msg1Idx = meta.autoMessageIndex
+    else
+        -- Use combined list (presets + custom lines) for msg1
+        msg1List = MPW.GetMsg1WithCustom()
+        msg1Idx = MPW_Config and MPW_Config.msg1Index
+    end
+    
+    local tpl1 = GetSafeTemplate(msg1List, msg1Idx, 1)
     local tpl2 = GetSafeTemplate(MPW.MSG2_PRESETS, MPW_Config and MPW_Config.msg2Index, 1)
 
     local myBtag = MPW.GetMyBattleTag()
