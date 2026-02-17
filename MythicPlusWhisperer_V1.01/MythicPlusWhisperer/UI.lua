@@ -142,7 +142,7 @@ local custLabel = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSma
 custLabel:SetPoint("TOPLEFT", 18, y)
 custLabel:SetWidth(480)
 custLabel:SetJustifyH("LEFT")
-custLabel:SetText("Write your own messages below. They appear in Message 1 dropdown but are never picked by \"Random\".\nPlaceholders: {name}, {praise}, {role}, {spec}, {btag}")
+custLabel:SetText("Write your own messages below. They appear in the send window message dropdown but are never picked by \"Random\".\nPlaceholders: {name}, {praise}, {role}, {spec}, {btag}")
 
 local CUSTOM_BOX_H = 22
 local CUSTOM_GAP   = 4
@@ -557,7 +557,7 @@ btnNone:SetScript("OnClick", function()
 end)
 
 btnThankAll:SetScript("OnClick", function()
-    -- Randomly select one of the 7 MSG1_PRESETS (excluding "Random" and custom messages)
+    -- Randomly select one of the MSG1_PRESETS (excluding "Random" and custom messages)
     local presetCandidates = {}
     for _, v in ipairs(MPW.MSG1_PRESETS) do
         if type(v) == "string" and v:lower():find("random", 1, true) == nil then
