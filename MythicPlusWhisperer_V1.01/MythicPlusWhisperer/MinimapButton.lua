@@ -45,6 +45,37 @@ local function SetAngle(btn, angle)
     -- Position relative to Minimap center
     btn:ClearAllPoints()
     btn:SetPoint("CENTER", Minimap, "CENTER", x, y)
+    
+    -- Ensure button stays within screen bounds
+    local left = btn:GetLeft()
+    local right = btn:GetRight()
+    local top = btn:GetTop()
+    local bottom = btn:GetBottom()
+    local screenWidth = UIParent:GetWidth()
+    local screenHeight = UIParent:GetHeight()
+    
+    if left and right and top and bottom then
+        -- Clamp to screen edges with a small margin
+        local margin = 5
+        local clampX, clampY = 0, 0
+        
+        if left < margin then
+            clampX = margin - left
+        elseif right > screenWidth - margin then
+            clampX = (screenWidth - margin) - right
+        end
+        
+        if bottom < margin then
+            clampY = margin - bottom
+        elseif top > screenHeight - margin then
+            clampY = (screenHeight - margin) - top
+        end
+        
+        if clampX ~= 0 or clampY ~= 0 then
+            btn:ClearAllPoints()
+            btn:SetPoint("CENTER", Minimap, "CENTER", x + clampX, y + clampY)
+        end
+    end
 end
 
 

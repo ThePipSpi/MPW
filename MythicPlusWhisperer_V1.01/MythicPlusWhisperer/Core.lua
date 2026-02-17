@@ -10,6 +10,8 @@ MPW.SEND_DELAY = 0.35
 MPW.DEFAULT_PRE_SEND_DELAY = 3.5
 MPW.MAX_LEN = 140
 MPW.MAX_CUSTOM_LINES = 6
+MPW.MAX_AUTO_MESSAGES = 8
+MPW.MAX_AUTO_CUSTOM_MESSAGES = 5
 
 MPW.CurrentRunType = MPW.CurrentRunType or "MPLUS" -- "MPLUS" or "LFG"
 MPW.RunContext = MPW.RunContext or { level = "", timeStr = "" }
@@ -117,6 +119,12 @@ core:SetScript("OnEvent", function(self, event, arg1)
     end
     if not MPW_Config.customLines then
         MPW_Config.customLines = {}
+    end
+    if not MPW_Config.autoMessageIndex then
+        MPW_Config.autoMessageIndex = 1
+    end
+    if not MPW_Config.autoCustomMessages then
+        MPW_Config.autoCustomMessages = {}
     end
 
     -- Per-character config (LIVE default ON)

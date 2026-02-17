@@ -107,7 +107,7 @@ end
 -- =========================================
 
 local configWin = CreateFrame("Frame", "MPW_ConfigFrame", UIParent, "BasicFrameTemplateWithInset")
-configWin:SetSize(520, 580)
+configWin:SetSize(520, 720)
 configWin:SetPoint("CENTER", 0, 60)
 configWin:SetMovable(true)
 configWin:EnableMouse(true)
@@ -185,8 +185,55 @@ for ci = 1, MPW.MAX_CUSTOM_LINES do
     customBoxes[ci] = box
 end
 
+-- ── Section 2b: Automatic Messages ──
+local yAuto = yCust - 32 - (MPW.MAX_CUSTOM_LINES * (CUSTOM_BOX_H + CUSTOM_GAP)) - 10
+yAuto = AddSectionHeader(configWin, "AUTOMATIC MESSAGES", yAuto)
+
+local autoLabel = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+autoLabel:SetPoint("TOPLEFT", 18, yAuto)
+autoLabel:SetWidth(480)
+autoLabel:SetJustifyH("LEFT")
+autoLabel:SetText("Choose default automatic message for whispers. Can be overridden per-player in send window.\nPlaceholders: {name}, {praise}, {role}, {spec}, {btag}")
+
+local lblAutoMsg = configWin:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+lblAutoMsg:SetPoint("TOPLEFT", 18, yAuto - 26)
+lblAutoMsg:SetText("Default automatic message")
+
+local autoCustomLabel = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+autoCustomLabel:SetPoint("TOPLEFT", 18, yAuto - 86)
+autoCustomLabel:SetWidth(480)
+autoCustomLabel:SetJustifyH("LEFT")
+autoCustomLabel:SetText("Custom automatic messages (excluded from Random):")
+
+local autoCustomBoxes = {}
+for ci = 1, MPW.MAX_AUTO_CUSTOM_MESSAGES do
+    local boxY = yAuto - 106 - ((ci - 1) * (CUSTOM_BOX_H + CUSTOM_GAP))
+    local numLbl = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    numLbl:SetPoint("TOPLEFT", 18, boxY - 3)
+    numLbl:SetText(tostring(ci) .. ".")
+
+    local box = CreateFrame("EditBox", "MPW_AutoCustomBox" .. ci, configWin, "InputBoxTemplate")
+    box:SetSize(440, CUSTOM_BOX_H)
+    box:SetPoint("TOPLEFT", 36, boxY)
+    box:SetAutoFocus(false)
+    box:SetMaxLetters(140)
+    box.idx = ci
+    box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEditFocusLost", function(self)
+        if not MPW_Config then return end
+        MPW_Config.autoCustomMessages = MPW_Config.autoCustomMessages or {}
+        local val = strtrim(self:GetText())
+        MPW_Config.autoCustomMessages[self.idx] = (val ~= "") and val or nil
+        -- Rebuild the auto message dropdown with updated custom messages
+        if MPW.RebuildAutoMessageDropdown then MPW.RebuildAutoMessageDropdown() end
+    end)
+
+    autoCustomBoxes[ci] = box
+end
+
 -- ── Section 3: Behavior ──
-local yBehav = yCust - 32 - (MPW.MAX_CUSTOM_LINES * (CUSTOM_BOX_H + CUSTOM_GAP)) - 10
+local yBehav = yAuto - 106 - (MPW.MAX_AUTO_CUSTOM_MESSAGES * (CUSTOM_BOX_H + CUSTOM_GAP)) - 10
 yBehav = AddSectionHeader(configWin, "BEHAVIOR", yBehav)
 
 local lblDelay = configWin:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -304,6 +351,42 @@ local dd2 = MakeDropdown(configWin, "MPW_DD2", 440, MPW.MSG2_PRESETS, function(i
 end)
 dd2:SetPoint("TOPLEFT", 6, y - 76)
 
+-- dd3 for automatic messages (uses combined list: presets + auto custom messages)
+local ddAutoItems = MPW.GetAutoMessagesWithCustom and MPW.GetAutoMessagesWithCustom() or MPW.AUTO_MESSAGE_PRESETS
+local ddAuto = MakeDropdown(configWin, "MPW_DDAuto", 440, ddAutoItems, function(i)
+    MPW_Config.autoMessageIndex = i
+end)
+ddAuto:SetPoint("TOPLEFT", 6, yAuto - 42)
+
+-- Rebuild ddAuto when auto custom messages change
+function MPW.RebuildAutoMessageDropdown()
+    local newItems = MPW.GetAutoMessagesWithCustom()
+    UIDropDownMenu_Initialize(ddAuto, function(self, level)
+        local selected = UIDropDownMenu_GetSelectedID(ddAuto) or 1
+        for i, txt in ipairs(newItems) do
+            local info   = UIDropDownMenu_CreateInfo()
+            info.text    = txt
+            info.checked = (i == selected)
+            info.func    = function()
+                UIDropDownMenu_SetSelectedID(ddAuto, i)
+                UIDropDownMenu_SetText(ddAuto, txt)
+                MPW_Config.autoMessageIndex = i
+                CloseDropDownMenus()
+                if MPW.UI and MPW.UI.sendWin and MPW.UI.sendWin:IsShown()
+                   and MPW.UI.UpdateAllPreviews then
+                    MPW.UI.UpdateAllPreviews()
+                end
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+    -- Clamp current selection
+    local idx = tonumber(MPW_Config.autoMessageIndex) or 1
+    if idx < 1 or idx > #newItems then idx = 1; MPW_Config.autoMessageIndex = 1 end
+    UIDropDownMenu_SetSelectedID(ddAuto, idx)
+    UIDropDownMenu_SetText(ddAuto, newItems[idx])
+end
+
 configWin:SetScript("OnShow", function()
     cbRewardThanks:SetChecked(MPW_Config and MPW_Config.autoPartyThanksOnReward)
     cbAutoGreet:SetChecked(MPW_Config and MPW_Config.autoGreetEnabled)
@@ -317,19 +400,36 @@ configWin:SetScript("OnShow", function()
         end
     end
 
+    -- Populate auto custom message edit boxes
+    for ci = 1, MPW.MAX_AUTO_CUSTOM_MESSAGES do
+        local box = autoCustomBoxes[ci]
+        if box then
+            local val = (MPW_Config and MPW_Config.autoCustomMessages and MPW_Config.autoCustomMessages[ci]) or ""
+            box:SetText(val)
+        end
+    end
+
     -- Rebuild dd1 with latest custom lines
     if MPW.RebuildMsg1Dropdown then MPW.RebuildMsg1Dropdown() end
+    
+    -- Rebuild ddAuto with latest auto custom messages
+    if MPW.RebuildAutoMessageDropdown then MPW.RebuildAutoMessageDropdown() end
 
     local combined = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
+    local autoCombined = MPW.GetAutoMessagesWithCustom and MPW.GetAutoMessagesWithCustom() or MPW.AUTO_MESSAGE_PRESETS
     local i1 = tonumber(MPW_Config.msg1Index) or 1
     local i2 = tonumber(MPW_Config.msg2Index) or 1
+    local iAuto = tonumber(MPW_Config.autoMessageIndex) or 1
     if i1 < 1 or i1 > #combined then i1 = 1 end
     if i2 < 1 or i2 > #MPW.MSG2_PRESETS then i2 = 1 end
+    if iAuto < 1 or iAuto > #autoCombined then iAuto = 1 end
 
     UIDropDownMenu_SetSelectedID(dd1, i1)
     UIDropDownMenu_SetText(dd1, combined[i1])
     UIDropDownMenu_SetSelectedID(dd2, i2)
     UIDropDownMenu_SetText(dd2, MPW.MSG2_PRESETS[i2])
+    UIDropDownMenu_SetSelectedID(ddAuto, iAuto)
+    UIDropDownMenu_SetText(ddAuto, autoCombined[iAuto])
 
     delayBox:SetText(tostring(tonumber(MPW_Config.preSendDelay) or MPW.DEFAULT_PRE_SEND_DELAY))
 end)
@@ -344,7 +444,7 @@ end
 local PAD = 16
 
 local sendWin = CreateFrame("Frame", "MPW_SendWin", UIParent, "BasicFrameTemplateWithInset")
-sendWin:SetSize(640, 420)
+sendWin:SetSize(800, 480)
 sendWin:SetPoint("CENTER")
 sendWin:SetMovable(true)
 sendWin:EnableMouse(true)
@@ -378,11 +478,12 @@ sendWin.noteLine:SetWidth(600)
 sendWin.noteLine:SetJustifyH("LEFT")
 
 local COL_PLAYER_X  = 30
-local COL_NAME_CB_X = 440
-local COL_2ND_CB_X  = 540
+local COL_NAME_CB_X = 340
+local COL_2ND_CB_X  = 440
+local COL_MSG_DD_X  = 550
 
 local header = CreateFrame("Frame", nil, sendWin)
-header:SetSize(600, 18)
+header:SetSize(760, 18)
 header:SetPoint("TOPLEFT", PAD, -96)
 
 local h1 = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -397,6 +498,10 @@ local h3 = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 h3:SetPoint("LEFT", COL_2ND_CB_X + 25, 0)
 h3:SetText("2nd Msg")
 
+local h4 = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+h4:SetPoint("LEFT", COL_MSG_DD_X, 0)
+h4:SetText("Message")
+
 local ROW_H     = 44
 local ROW_GAP   = 6
 local ROW_START_Y = -118
@@ -406,7 +511,7 @@ MPW.UI.rows = rows
 
 local function CreatePlayerRow(i)
     local row = CreateFrame("Frame", nil, sendWin)
-    row:SetSize(600, ROW_H)
+    row:SetSize(760, ROW_H)
     row:SetPoint("TOPLEFT", PAD, ROW_START_Y - ((i - 1) * (ROW_H + ROW_GAP)))
 
     local cbMain = CreateFrame("CheckButton", nil, row, "ChatConfigCheckButtonTemplate")
@@ -414,12 +519,12 @@ local function CreatePlayerRow(i)
 
     local text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     text:SetPoint("LEFT", COL_PLAYER_X, 10)
-    text:SetWidth(380)
+    text:SetWidth(280)
     text:SetJustifyH("LEFT")
 
     local preview = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     preview:SetPoint("LEFT", COL_PLAYER_X, -6)
-    preview:SetWidth(380)
+    preview:SetWidth(280)
     preview:SetJustifyH("LEFT")
     preview:SetText("")
 
@@ -437,9 +542,45 @@ local function CreatePlayerRow(i)
     lblBnet:SetPoint("LEFT", COL_2ND_CB_X + 24, 2)
     lblBnet:SetText("2nd")
 
+    -- Create message dropdown for this row
+    local msgDD = CreateFrame("Frame", "MPW_Row" .. i .. "MsgDD", row, "UIDropDownMenuTemplate")
+    UIDropDownMenu_SetWidth(msgDD, 200)
+    msgDD:SetPoint("LEFT", COL_MSG_DD_X - 12, -2)
+    msgDD.rowIndex = i
+    
+    -- Initialize with default message from config
+    local autoMessages = MPW.GetAutoMessagesWithCustom and MPW.GetAutoMessagesWithCustom() or MPW.AUTO_MESSAGE_PRESETS
+    local defaultIdx = tonumber(MPW_Config and MPW_Config.autoMessageIndex) or 1
+    if defaultIdx < 1 or defaultIdx > #autoMessages then defaultIdx = 1 end
+    
+    UIDropDownMenu_Initialize(msgDD, function(self, level)
+        local selected = UIDropDownMenu_GetSelectedID(msgDD) or defaultIdx
+        for idx, txt in ipairs(autoMessages) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = txt
+            info.checked = (idx == selected)
+            info.func = function()
+                UIDropDownMenu_SetSelectedID(msgDD, idx)
+                UIDropDownMenu_SetText(msgDD, txt)
+                -- Store the selected index for this row
+                if row.playerName then
+                    MPW.UI.rowMessageOverrides = MPW.UI.rowMessageOverrides or {}
+                    MPW.UI.rowMessageOverrides[row.playerName] = idx
+                end
+                CloseDropDownMenus()
+                if MPW.UI.UpdateRowPreview then MPW.UI.UpdateRowPreview(row) end
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+    
+    UIDropDownMenu_SetSelectedID(msgDD, defaultIdx)
+    UIDropDownMenu_SetText(msgDD, autoMessages[defaultIdx])
+
     local function SetEnabledSubs(enabled)
         cbName:SetEnabled(enabled)
         cbBnet:SetEnabled(enabled)
+        msgDD:SetAlpha(enabled and 1 or 0.5)
         cbName:SetAlpha(enabled and 1 or 0.25)
         cbBnet:SetAlpha(enabled and 1 or 0.25)
         lblName:SetAlpha(enabled and 1 or 0.4)
@@ -468,6 +609,7 @@ local function CreatePlayerRow(i)
     row.preview        = preview
     row.cbName         = cbName
     row.cbBnet         = cbBnet
+    row.msgDD          = msgDD
     row.playerName     = nil
     row.classFile      = nil
     row.role           = nil
@@ -595,9 +737,24 @@ function MPW.UI.UpdateRowPreview(r)
     local includeSecond = r.cbBnet:GetChecked()
     if MPW.CurrentRunType == "LFG" then includeSecond = false end
 
+    -- Get the selected message index for this row
+    local autoMsgIdx = nil
+    if r.msgDD then
+        autoMsgIdx = UIDropDownMenu_GetSelectedID(r.msgDD)
+    end
+    -- Fallback to override if set
+    if not autoMsgIdx and MPW.UI.rowMessageOverrides and MPW.UI.rowMessageOverrides[r.playerName] then
+        autoMsgIdx = MPW.UI.rowMessageOverrides[r.playerName]
+    end
+    -- Final fallback to default config
+    if not autoMsgIdx then
+        autoMsgIdx = tonumber(MPW_Config and MPW_Config.autoMessageIndex) or 1
+    end
+
     local msg1, msg2 = MPW.BuildMessagesForTarget(r.playerName, includeName, includeSecond, {
         role   = r.role,
         specID = r.specID,
+        autoMessageIndex = autoMsgIdx,
     })
 
     local line = msg1
@@ -630,6 +787,15 @@ local function ResetRows()
         r.cbBnet:SetChecked(false)
         r:SetEnabledSubs(false)
         if r.preview then r.preview:SetText("") end
+        
+        -- Reset message dropdown to default
+        if r.msgDD then
+            local autoMessages = MPW.GetAutoMessagesWithCustom and MPW.GetAutoMessagesWithCustom() or MPW.AUTO_MESSAGE_PRESETS
+            local defaultIdx = tonumber(MPW_Config and MPW_Config.autoMessageIndex) or 1
+            if defaultIdx < 1 or defaultIdx > #autoMessages then defaultIdx = 1 end
+            UIDropDownMenu_SetSelectedID(r.msgDD, defaultIdx)
+            UIDropDownMenu_SetText(r.msgDD, autoMessages[defaultIdx])
+        end
     end
 end
 
@@ -654,6 +820,22 @@ local function PopulateFromSnapshot()
         local colorStr = GetClassColorStr(m.classFile)
 
         r.text:SetText(roleIcon .. icon .. "|c" .. colorStr .. clean .. "|r |cffaaaaaa(" .. RoleText(m.role) .. ")|r")
+        
+        -- Reset message dropdown to default for this player
+        if r.msgDD then
+            local autoMessages = MPW.GetAutoMessagesWithCustom and MPW.GetAutoMessagesWithCustom() or MPW.AUTO_MESSAGE_PRESETS
+            local defaultIdx = tonumber(MPW_Config and MPW_Config.autoMessageIndex) or 1
+            if defaultIdx < 1 or defaultIdx > #autoMessages then defaultIdx = 1 end
+            
+            -- Check if there's an override for this player
+            if MPW.UI.rowMessageOverrides and MPW.UI.rowMessageOverrides[m.fullName] then
+                defaultIdx = MPW.UI.rowMessageOverrides[m.fullName]
+            end
+            
+            UIDropDownMenu_SetSelectedID(r.msgDD, defaultIdx)
+            UIDropDownMenu_SetText(r.msgDD, autoMessages[defaultIdx])
+        end
+        
         r:Show()
         idx = idx + 1
     end
