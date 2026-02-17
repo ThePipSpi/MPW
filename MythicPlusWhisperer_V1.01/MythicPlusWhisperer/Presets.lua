@@ -5,9 +5,6 @@
 
 MPW = MPW or {}
 
--- Maximum number of custom lines
-MPW.MAX_CUSTOM_LINES = 6
-
 -- Msg1 = short thank-you / gg
 -- Placeholders:
 --   {name}   (no realm)
@@ -38,7 +35,8 @@ MPW.MSG2_PRESETS = {
 
 -- Build combined msg1 list (presets + non-empty custom lines)
 -- Custom entries are tagged so the Random picker can skip them.
-local CUSTOM_TAG = "[Custom] "
+MPW.CUSTOM_TAG = "[Custom] "
+local CUSTOM_TAG = MPW.CUSTOM_TAG
 
 function MPW.GetMsg1WithCustom()
     local list = {}

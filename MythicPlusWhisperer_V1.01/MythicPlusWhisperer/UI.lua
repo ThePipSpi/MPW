@@ -159,7 +159,7 @@ local CUSTOM_BOX_H = 22
 local CUSTOM_GAP   = 4
 local customBoxes  = {}
 
-for ci = 1, (MPW.MAX_CUSTOM_LINES or 6) do
+for ci = 1, MPW.MAX_CUSTOM_LINES do
     local boxY = yCust - 32 - ((ci - 1) * (CUSTOM_BOX_H + CUSTOM_GAP))
     local numLbl = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     numLbl:SetPoint("TOPLEFT", 18, boxY - 3)
@@ -186,7 +186,7 @@ for ci = 1, (MPW.MAX_CUSTOM_LINES or 6) do
 end
 
 -- ── Section 3: Behavior ──
-local yBehav = yCust - 32 - ((MPW.MAX_CUSTOM_LINES or 6) * (CUSTOM_BOX_H + CUSTOM_GAP)) - 10
+local yBehav = yCust - 32 - (MPW.MAX_CUSTOM_LINES * (CUSTOM_BOX_H + CUSTOM_GAP)) - 10
 yBehav = AddSectionHeader(configWin, "BEHAVIOR", yBehav)
 
 local lblDelay = configWin:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -309,7 +309,7 @@ configWin:SetScript("OnShow", function()
     cbAutoGreet:SetChecked(MPW_Config and MPW_Config.autoGreetEnabled)
 
     -- Populate custom line edit boxes
-    for ci = 1, (MPW.MAX_CUSTOM_LINES or 6) do
+    for ci = 1, MPW.MAX_CUSTOM_LINES do
         local box = customBoxes[ci]
         if box then
             local val = (MPW_Config and MPW_Config.customLines and MPW_Config.customLines[ci]) or ""

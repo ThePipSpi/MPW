@@ -9,6 +9,7 @@ MPW.MAX_ROWS = 5
 MPW.SEND_DELAY = 0.35
 MPW.DEFAULT_PRE_SEND_DELAY = 3.5
 MPW.MAX_LEN = 140
+MPW.MAX_CUSTOM_LINES = 6
 
 MPW.CurrentRunType = MPW.CurrentRunType or "MPLUS" -- "MPLUS" or "LFG"
 MPW.RunContext = MPW.RunContext or { level = "", timeStr = "" }
@@ -137,7 +138,7 @@ core:SetScript("OnEvent", function(self, event, arg1)
     if MPW.MSG1_PRESETS then
         local combinedLen = #MPW.MSG1_PRESETS
         if MPW_Config.customLines then
-            for i = 1, (MPW.MAX_CUSTOM_LINES or 6) do
+            for i = 1, MPW.MAX_CUSTOM_LINES do
                 if MPW_Config.customLines[i] and MPW_Config.customLines[i] ~= "" then
                     combinedLen = combinedLen + 1
                 end
