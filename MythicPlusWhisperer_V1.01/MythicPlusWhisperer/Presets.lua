@@ -222,7 +222,7 @@ function MPW.BuildMessagesForTarget(targetFullName, includeName, includeSecond, 
 
     -- Use combined list (presets + custom lines) for msg1
     local msg1List = MPW.GetMsg1WithCustom()
-    local msg1Idx = meta.msg1Index or (MPW_Config and MPW_Config.msg1Index) or 1
+    local msg1Idx = meta.msg1Index or 1
     
     local tpl1 = GetSafeTemplate(msg1List, msg1Idx, 1)
     local tpl2 = GetSafeTemplate(MPW.MSG2_PRESETS, MPW_Config and MPW_Config.msg2Index, 1)

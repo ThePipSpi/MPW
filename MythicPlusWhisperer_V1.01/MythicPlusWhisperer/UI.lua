@@ -558,24 +558,22 @@ end)
 
 btnThankAll:SetScript("OnClick", function()
     -- Randomly select one of the MSG1_PRESETS (excluding "Random" and custom messages)
-    local presetCandidates = {}
-    for _, v in ipairs(MPW.MSG1_PRESETS) do
-        if type(v) == "string" and v:lower():find("random", 1, true) == nil then
-            table.insert(presetCandidates, v)
+    -- Build list of preset indices in the combined list
+    local combinedList = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
+    local presetIndices = {}
+    
+    -- Only include indices that correspond to non-Random MSG1_PRESETS
+    for idx = 1, #MPW.MSG1_PRESETS do
+        local preset = MPW.MSG1_PRESETS[idx]
+        if type(preset) == "string" and preset:lower():find("random", 1, true) == nil then
+            table.insert(presetIndices, idx)
         end
     end
     
     local randomPresetIdx = 1
-    if #presetCandidates > 0 then
-        -- Find the index of a random preset in the combined list
-        local randomPreset = presetCandidates[math.random(1, #presetCandidates)]
-        local combinedList = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
-        for idx, v in ipairs(combinedList) do
-            if v == randomPreset then
-                randomPresetIdx = idx
-                break
-            end
-        end
+    if #presetIndices > 0 then
+        -- Pick a random preset index
+        randomPresetIdx = presetIndices[math.random(1, #presetIndices)]
     end
     
     for i = 1, MPW.MAX_ROWS do
@@ -588,7 +586,6 @@ btnThankAll:SetScript("OnClick", function()
             -- Set the dropdown to the randomly selected preset
             if r.msgDD then
                 UIDropDownMenu_SetSelectedID(r.msgDD, randomPresetIdx)
-                local combinedList = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
                 UIDropDownMenu_SetText(r.msgDD, combinedList[randomPresetIdx])
                 -- Store the override
                 if r.playerName then
