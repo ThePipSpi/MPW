@@ -79,7 +79,7 @@ Use these in your custom messages:
 
 ## Version
 
-- **Current Version**: 2.0.3
+- **Current Version**: 2.0.4
 - **Interface**: 120001 (The War Within)
 - **Author**: TuoNome
 
