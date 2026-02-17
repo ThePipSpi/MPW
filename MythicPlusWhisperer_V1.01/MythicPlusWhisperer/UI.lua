@@ -565,7 +565,7 @@ btnThankAll:SetScript("OnClick", function()
     -- Only include indices that correspond to non-Random MSG1_PRESETS
     for idx = 1, #MPW.MSG1_PRESETS do
         local preset = MPW.MSG1_PRESETS[idx]
-        if type(preset) == "string" and preset:lower():find("random", 1, true) == nil then
+        if type(preset) == "string" and preset ~= "Random" then
             table.insert(presetIndices, idx)
         end
     end
