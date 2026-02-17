@@ -14,6 +14,17 @@ MPW.CurrentRunType = MPW.CurrentRunType or "MPLUS" -- "MPLUS" or "LFG"
 MPW.RunContext = MPW.RunContext or { level = "", timeStr = "" }
 MPW.IsTesting = false
 
+-- Session statistics (reset on login)
+MPW.SessionStats = { sent = 0 }
+
+function MPW.GetSessionStats()
+    return MPW.SessionStats
+end
+
+function MPW.IncrementSentCount()
+    MPW.SessionStats.sent = (MPW.SessionStats.sent or 0) + 1
+end
+
 function MPW.Now()
     return GetTime and GetTime() or time()
 end
@@ -103,6 +114,9 @@ core:SetScript("OnEvent", function(self, event, arg1)
     if MPW_Config.autoGreetEnabled == nil then
         MPW_Config.autoGreetEnabled = true
     end
+    if not MPW_Config.customLines then
+        MPW_Config.customLines = {}
+    end
 
     -- Per-character config (LIVE default ON)
     if not MPW_CharConfig then
@@ -118,7 +132,20 @@ core:SetScript("OnEvent", function(self, event, arg1)
     end
 
     -- Clamp dropdown indices if presets already loaded
-    if MPW.MSG1_PRESETS then MPW_Config.msg1Index = ClampIndex(MPW_Config.msg1Index, MPW.MSG1_PRESETS) end
+    -- msg1 uses the combined list (presets + custom lines), but at load time
+    -- custom lines may not be populated yet, so just clamp to base presets
+    if MPW.MSG1_PRESETS then
+        local combinedLen = #MPW.MSG1_PRESETS
+        if MPW_Config.customLines then
+            for i = 1, (MPW.MAX_CUSTOM_LINES or 6) do
+                if MPW_Config.customLines[i] and MPW_Config.customLines[i] ~= "" then
+                    combinedLen = combinedLen + 1
+                end
+            end
+        end
+        local i1 = tonumber(MPW_Config.msg1Index) or 1
+        if i1 < 1 or i1 > combinedLen then MPW_Config.msg1Index = 1 end
+    end
     if MPW.MSG2_PRESETS then MPW_Config.msg2Index = ClampIndex(MPW_Config.msg2Index, MPW.MSG2_PRESETS) end
 
     -- Seed RNG safely
@@ -130,7 +157,7 @@ core:SetScript("OnEvent", function(self, event, arg1)
     end
 
     MPW.Print("Loaded. Mode: " .. (MPW.IsArmed() and "|cffff2020LIVE|r" or "|cff00ffffSAFE|r"))
-    MPW.Print("Commands: /mpw (settings)  /mpw show  /mpw test  /mpw arm")
+    MPW.Print("Commands: /mpw (settings)  /mpw show  /mpw test  /mpw arm  /mpw stats")
 end)
 
 -- =========================================
@@ -156,6 +183,12 @@ SlashCmdList["MPW"] = function(msg)
 
     if cmd == "arm" then
         MPW.ToggleArmed()
+        return
+    end
+
+    if cmd == "stats" then
+        local stats = MPW.GetSessionStats()
+        MPW.Print("Session stats: " .. (stats.sent or 0) .. " whisper(s) sent.")
         return
     end
 

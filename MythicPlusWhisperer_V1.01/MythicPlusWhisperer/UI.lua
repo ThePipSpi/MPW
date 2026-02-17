@@ -107,31 +107,108 @@ end
 -- =========================================
 
 local configWin = CreateFrame("Frame", "MPW_ConfigFrame", UIParent, "BasicFrameTemplateWithInset")
-configWin:SetSize(470, 340)
-configWin:SetPoint("CENTER", 0, 180)
+configWin:SetSize(520, 580)
+configWin:SetPoint("CENTER", 0, 60)
+configWin:SetMovable(true)
+configWin:EnableMouse(true)
+configWin:RegisterForDrag("LeftButton")
+configWin:SetScript("OnDragStart", configWin.StartMoving)
+configWin:SetScript("OnDragStop",  configWin.StopMovingOrSizing)
 configWin:Hide()
 
 configWin.title = configWin:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
 configWin.title:SetPoint("TOPLEFT", 14, -10)
 configWin.title:SetText("Mythic Plus Whisperer - Settings")
 
+-- Section separator helper
+local function AddSectionHeader(parent, text, yOff)
+    local sep = parent:CreateTexture(nil, "ARTWORK")
+    sep:SetHeight(1)
+    sep:SetPoint("TOPLEFT", 14, yOff)
+    sep:SetPoint("TOPRIGHT", -14, yOff)
+    sep:SetColorTexture(0.4, 0.4, 0.4, 0.6)
+
+    local lbl = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lbl:SetPoint("TOPLEFT", 18, yOff - 6)
+    lbl:SetTextColor(1, 0.82, 0)
+    lbl:SetText(text)
+    return yOff - 22
+end
+
+-- ── Section 1: Preset Messages ──
+local y = AddSectionHeader(configWin, "PRESET MESSAGES", -38)
+
 local lbl1 = configWin:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-lbl1:SetPoint("TOPLEFT", 18, -55)
-lbl1:SetText("Message 1 (choose one preset)")
+lbl1:SetPoint("TOPLEFT", 18, y)
+lbl1:SetText("Message 1 (thank-you preset)")
 
 local lbl2 = configWin:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-lbl2:SetPoint("TOPLEFT", 18, -115)
-lbl2:SetText("Message 2 (choose one preset)")
+lbl2:SetPoint("TOPLEFT", 18, y - 60)
+lbl2:SetText("Message 2 (optional BTag invite)")
+
+-- ── Section 2: Custom Text Lines ──
+local yCust = AddSectionHeader(configWin, "CUSTOM MESSAGE LINES  (excluded from Random)", y - 128)
+
+local custLabel = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+custLabel:SetPoint("TOPLEFT", 18, yCust)
+custLabel:SetWidth(480)
+custLabel:SetJustifyH("LEFT")
+custLabel:SetText("Write your own messages below. They appear in the Message 1 dropdown but are never picked by \"Random\".\nPlaceholders: {name}, {praise}, {role}, {spec}, {btag}")
+
+local CUSTOM_BOX_H = 22
+local CUSTOM_GAP   = 4
+local customBoxes  = {}
+
+for ci = 1, (MPW.MAX_CUSTOM_LINES or 6) do
+    local boxY = yCust - 32 - ((ci - 1) * (CUSTOM_BOX_H + CUSTOM_GAP))
+    local numLbl = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    numLbl:SetPoint("TOPLEFT", 18, boxY - 3)
+    numLbl:SetText(tostring(ci) .. ".")
+
+    local box = CreateFrame("EditBox", "MPW_CustomBox" .. ci, configWin, "InputBoxTemplate")
+    box:SetSize(440, CUSTOM_BOX_H)
+    box:SetPoint("TOPLEFT", 36, boxY)
+    box:SetAutoFocus(false)
+    box:SetMaxLetters(140)
+    box.idx = ci
+    box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEditFocusLost", function(self)
+        if not MPW_Config then return end
+        MPW_Config.customLines = MPW_Config.customLines or {}
+        local val = strtrim(self:GetText())
+        MPW_Config.customLines[self.idx] = (val ~= "") and val or nil
+        -- Rebuild the dropdown with updated custom lines
+        if MPW.RebuildMsg1Dropdown then MPW.RebuildMsg1Dropdown() end
+    end)
+
+    customBoxes[ci] = box
+end
+
+-- ── Section 3: Behavior ──
+local yBehav = yCust - 32 - ((MPW.MAX_CUSTOM_LINES or 6) * (CUSTOM_BOX_H + CUSTOM_GAP)) - 10
+yBehav = AddSectionHeader(configWin, "BEHAVIOR", yBehav)
 
 local lblDelay = configWin:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-lblDelay:SetPoint("TOPLEFT", 18, -175)
-lblDelay:SetText("LIVE: Delay after OK (seconds)")
+lblDelay:SetPoint("TOPLEFT", 18, yBehav)
+lblDelay:SetText("LIVE delay after OK (seconds):")
+
+local delayBox = CreateFrame("EditBox", "MPW_DelayBox", configWin, "InputBoxTemplate")
+delayBox:SetSize(60, 24)
+delayBox:SetPoint("LEFT", lblDelay, "RIGHT", 10, 0)
+delayBox:SetAutoFocus(false)
+delayBox:SetScript("OnEnterPressed", function(self)
+    self:ClearFocus()
+    local v = tonumber(self:GetText())
+    if not v then v = MPW.DEFAULT_PRE_SEND_DELAY end
+    MPW_Config.preSendDelay = math.max(0, v)
+end)
 
 local cbRewardThanks = CreateFrame("CheckButton", nil, configWin, "ChatConfigCheckButtonTemplate")
-cbRewardThanks:SetPoint("TOPLEFT", 18, -230)
+cbRewardThanks:SetPoint("TOPLEFT", 18, yBehav - 30)
 cbRewardThanks.Text:ClearAllPoints()
 cbRewardThanks.Text:SetPoint("LEFT", cbRewardThanks, "RIGHT", 6, 1)
-cbRewardThanks.Text:SetWidth(400)
+cbRewardThanks.Text:SetWidth(440)
 cbRewardThanks.Text:SetJustifyH("LEFT")
 cbRewardThanks.Text:SetText("Auto party 'ty!' when LFG reward triggers")
 cbRewardThanks:SetScript("OnClick", function(self)
@@ -139,10 +216,10 @@ cbRewardThanks:SetScript("OnClick", function(self)
 end)
 
 local cbAutoGreet = CreateFrame("CheckButton", nil, configWin, "ChatConfigCheckButtonTemplate")
-cbAutoGreet:SetPoint("TOPLEFT", cbRewardThanks, "BOTTOMLEFT", 0, -8)
+cbAutoGreet:SetPoint("TOPLEFT", cbRewardThanks, "BOTTOMLEFT", 0, -4)
 cbAutoGreet.Text:ClearAllPoints()
 cbAutoGreet.Text:SetPoint("LEFT", cbAutoGreet, "RIGHT", 6, 1)
-cbAutoGreet.Text:SetWidth(400)
+cbAutoGreet.Text:SetWidth(440)
 cbAutoGreet.Text:SetJustifyH("LEFT")
 cbAutoGreet.Text:SetText("Auto greeting in party (accessibility)")
 cbAutoGreet:SetScript("OnClick", function(self)
@@ -150,14 +227,14 @@ cbAutoGreet:SetScript("OnClick", function(self)
 end)
 
 local hint = configWin:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-hint:SetPoint("TOPLEFT", cbAutoGreet, "BOTTOMLEFT", 0, -12)
-hint:SetWidth(430)
+hint:SetPoint("TOPLEFT", cbAutoGreet, "BOTTOMLEFT", 0, -8)
+hint:SetWidth(480)
 hint:SetJustifyH("LEFT")
-hint:SetText("Placeholders: {name}, {praise}, {role}, {spec}, {btag}.\nLFG disables Message 2 for safety.")
+hint:SetText("LFG disables Message 2 for safety. Custom lines support all placeholders.")
 
 local closeBtnCfg = CreateFrame("Button", nil, configWin, "UIPanelButtonTemplate")
 closeBtnCfg:SetSize(120, 30)
-closeBtnCfg:SetPoint("BOTTOM", 0, 18)
+closeBtnCfg:SetPoint("BOTTOM", 0, 14)
 closeBtnCfg:SetText("Close")
 closeBtnCfg:SetScript("OnClick", function() configWin:Hide() end)
 
@@ -186,38 +263,71 @@ local function MakeDropdown(parent, name, width, items, onPick)
     return dd
 end
 
-local dd1 = MakeDropdown(configWin, "MPW_DD1", 400, MPW.MSG1_PRESETS, function(i)
+-- dd1 uses the combined list (presets + custom lines)
+local dd1Items = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
+local dd1 = MakeDropdown(configWin, "MPW_DD1", 440, dd1Items, function(i)
     MPW_Config.msg1Index = i
 end)
-dd1:SetPoint("TOPLEFT", 6, -72)
+dd1:SetPoint("TOPLEFT", 6, y - 16)
 
-local dd2 = MakeDropdown(configWin, "MPW_DD2", 400, MPW.MSG2_PRESETS, function(i)
+-- Rebuild dd1 when custom lines change
+function MPW.RebuildMsg1Dropdown()
+    local newItems = MPW.GetMsg1WithCustom()
+    UIDropDownMenu_Initialize(dd1, function(self, level)
+        local selected = UIDropDownMenu_GetSelectedID(dd1) or 1
+        for i, txt in ipairs(newItems) do
+            local info   = UIDropDownMenu_CreateInfo()
+            info.text    = txt
+            info.checked = (i == selected)
+            info.func    = function()
+                UIDropDownMenu_SetSelectedID(dd1, i)
+                UIDropDownMenu_SetText(dd1, txt)
+                MPW_Config.msg1Index = i
+                CloseDropDownMenus()
+                if MPW.UI and MPW.UI.sendWin and MPW.UI.sendWin:IsShown()
+                   and MPW.UI.UpdateAllPreviews then
+                    MPW.UI.UpdateAllPreviews()
+                end
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+    -- Clamp current selection
+    local idx = tonumber(MPW_Config.msg1Index) or 1
+    if idx < 1 or idx > #newItems then idx = 1; MPW_Config.msg1Index = 1 end
+    UIDropDownMenu_SetSelectedID(dd1, idx)
+    UIDropDownMenu_SetText(dd1, newItems[idx])
+end
+
+local dd2 = MakeDropdown(configWin, "MPW_DD2", 440, MPW.MSG2_PRESETS, function(i)
     MPW_Config.msg2Index = i
 end)
-dd2:SetPoint("TOPLEFT", 6, -132)
-
-local delayBox = CreateFrame("EditBox", "MPW_DelayBox", configWin, "InputBoxTemplate")
-delayBox:SetSize(80, 28)
-delayBox:SetPoint("TOPLEFT", 18, -195)
-delayBox:SetAutoFocus(false)
-delayBox:SetScript("OnEnterPressed", function(self)
-    self:ClearFocus()
-    local v = tonumber(self:GetText())
-    if not v then v = MPW.DEFAULT_PRE_SEND_DELAY end
-    MPW_Config.preSendDelay = math.max(0, v)
-end)
+dd2:SetPoint("TOPLEFT", 6, y - 76)
 
 configWin:SetScript("OnShow", function()
     cbRewardThanks:SetChecked(MPW_Config and MPW_Config.autoPartyThanksOnReward)
     cbAutoGreet:SetChecked(MPW_Config and MPW_Config.autoGreetEnabled)
 
+    -- Populate custom line edit boxes
+    for ci = 1, (MPW.MAX_CUSTOM_LINES or 6) do
+        local box = customBoxes[ci]
+        if box then
+            local val = (MPW_Config and MPW_Config.customLines and MPW_Config.customLines[ci]) or ""
+            box:SetText(val)
+        end
+    end
+
+    -- Rebuild dd1 with latest custom lines
+    if MPW.RebuildMsg1Dropdown then MPW.RebuildMsg1Dropdown() end
+
+    local combined = MPW.GetMsg1WithCustom and MPW.GetMsg1WithCustom() or MPW.MSG1_PRESETS
     local i1 = tonumber(MPW_Config.msg1Index) or 1
     local i2 = tonumber(MPW_Config.msg2Index) or 1
-    if i1 < 1 or i1 > #MPW.MSG1_PRESETS then i1 = 1 end
+    if i1 < 1 or i1 > #combined then i1 = 1 end
     if i2 < 1 or i2 > #MPW.MSG2_PRESETS then i2 = 1 end
 
     UIDropDownMenu_SetSelectedID(dd1, i1)
-    UIDropDownMenu_SetText(dd1, MPW.MSG1_PRESETS[i1])
+    UIDropDownMenu_SetText(dd1, combined[i1])
     UIDropDownMenu_SetSelectedID(dd2, i2)
     UIDropDownMenu_SetText(dd2, MPW.MSG2_PRESETS[i2])
 

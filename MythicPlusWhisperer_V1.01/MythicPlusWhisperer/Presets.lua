@@ -1,8 +1,12 @@
 -- Presets.lua
 -- Friendly, low-drama message presets.
 -- Kept intentionally neutral (no role/performance callouts) so it won't read like sarcasm.
+-- Custom lines are stored in MPW_Config.customLines and are NEVER included in "Random".
 
 MPW = MPW or {}
+
+-- Maximum number of custom lines
+MPW.MAX_CUSTOM_LINES = 6
 
 -- Msg1 = short thank-you / gg
 -- Placeholders:
@@ -28,6 +32,29 @@ MPW.MSG2_PRESETS = {
     "Random",
     "if you ever need a +1: {btag}",
 }
+
+-- Custom lines are appended at runtime but excluded from Random selection
+-- They are stored in MPW_Config.customLines = { [1] = "...", ... }
+
+-- Build combined msg1 list (presets + non-empty custom lines)
+-- Custom entries are tagged so the Random picker can skip them.
+local CUSTOM_TAG = "[Custom] "
+
+function MPW.GetMsg1WithCustom()
+    local list = {}
+    for _, v in ipairs(MPW.MSG1_PRESETS) do
+        table.insert(list, v)
+    end
+    if MPW_Config and MPW_Config.customLines then
+        for i = 1, MPW.MAX_CUSTOM_LINES do
+            local line = MPW_Config.customLines[i]
+            if line and strtrim(line) ~= "" then
+                table.insert(list, CUSTOM_TAG .. line)
+            end
+        end
+    end
+    return list
+end
 
 -- =========================================
 -- Helpers
@@ -55,13 +82,23 @@ local function PresetByIndex(list, idx)
     if idx < 1 or idx > #list then idx = 1 end
 
     local current = list[idx]
+
+    -- Strip the custom tag to get the raw template
+    local isCustom = false
+    if type(current) == "string" and current:sub(1, #CUSTOM_TAG) == CUSTOM_TAG then
+        isCustom = true
+        current = current:sub(#CUSTOM_TAG + 1)
+    end
+
     local isRandom = (type(current) == "string") and current:lower():find("random", 1, true) ~= nil
 
     if isRandom then
-        -- Pick from all non-"Random" presets in the list
+        -- Pick from all non-"Random" and non-custom presets in the list
         local candidates = {}
         for _, v in ipairs(list) do
-            if type(v) == "string" and v:lower():find("random", 1, true) == nil then
+            if type(v) == "string"
+               and v:lower():find("random", 1, true) == nil
+               and v:sub(1, #CUSTOM_TAG) ~= CUSTOM_TAG then
                 table.insert(candidates, v)
             end
         end
@@ -74,7 +111,7 @@ local function PresetByIndex(list, idx)
         return candidates[r], idx
     end
 
-    return list[idx], idx
+    return current, idx
 end
 
 local function GetSafeTemplate(list, idx, fallbackIdx)
@@ -82,7 +119,20 @@ local function GetSafeTemplate(list, idx, fallbackIdx)
     tpl, idx = PresetByIndex(list, idx)
     tpl = MPW.CleanOutgoing(tpl)
 
-    if not IsAllowed(list, tpl) then
+    -- For combined lists, also accept raw custom entries
+    local allowed = false
+    for _, v in ipairs(list) do
+        local raw = v
+        if type(raw) == "string" and raw:sub(1, #CUSTOM_TAG) == CUSTOM_TAG then
+            raw = raw:sub(#CUSTOM_TAG + 1)
+        end
+        if tpl == MPW.CleanOutgoing(raw) then
+            allowed = true
+            break
+        end
+    end
+
+    if not allowed then
         tpl, _ = PresetByIndex(list, fallbackIdx or 1)
         tpl = MPW.CleanOutgoing(tpl)
     end
@@ -171,7 +221,9 @@ function MPW.BuildMessagesForTarget(targetFullName, includeName, includeSecond, 
     local praise = PraiseForRole(role)
     local specName = SpecNameFromID(tonumber(meta.specID) or 0)
 
-    local tpl1 = GetSafeTemplate(MPW.MSG1_PRESETS, MPW_Config and MPW_Config.msg1Index, 1)
+    -- Use combined list (presets + custom lines) for msg1
+    local msg1List = MPW.GetMsg1WithCustom()
+    local tpl1 = GetSafeTemplate(msg1List, MPW_Config and MPW_Config.msg1Index, 1)
     local tpl2 = GetSafeTemplate(MPW.MSG2_PRESETS, MPW_Config and MPW_Config.msg2Index, 1)
 
     local myBtag = MPW.GetMyBattleTag()
